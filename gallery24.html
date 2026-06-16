@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gallery24 — Lo que Permanece</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.5.0/aframe.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body { font-family: 'Georgia', serif; background: #0a0a0a; color: #e8e0d0; overflow: hidden; }
+
+    #ui-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 100;
+    }
+
+    #header {
+      position: fixed; top: 0; left: 0; right: 0;
+      padding: 18px 28px;
+      display: flex; justify-content: space-between; align-items: center;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    #logo {
+      font-size: 22px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: #c9b97a; font-weight: 400;
+    }
+
+    #logo span { color: #e8e0d0; font-size: 13px; display: block; letter-spacing: 0.3em; margin-top: 2px; }
+
+    #controls-hint {
+      font-size: 11px; letter-spacing: 0.15em; color: rgba(232,224,208,0.5);
+      text-align: right; line-height: 1.8;
+    }
+
+    #admin-btn {
+      position: fixed; bottom: 24px; right: 24px;
+      background: rgba(10,10,10,0.85); border: 1px solid #c9b97a;
+      color: #c9b97a; padding: 10px 20px;
+      font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+      cursor: pointer; pointer-events: all;
+      transition: all 0.3s;
+    }
+    #admin-btn:hover { background: #c9b97a; color: #0a0a0a; }
+
+    #exposition-label {
+      position: fixed; bottom: 24px; left: 28px;
+      font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
+      color: rgba(201,185,122,0.6); pointer-events: none;
+    }
+
+    /* ADMIN PANEL */
+    #admin-panel {
+      display: none;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.92); z-index: 200;
+      flex-direction: column; align-items: center; justify-content: center;
+      pointer-events: all;
+    }
+    #admin-panel.active { display: flex; }
+
+    #admin-inner {
+      background: #111; border: 1px solid #2a2a2a;
+      width: 480px; max-width: 95vw; max-height: 85vh;
+      overflow-y: auto; padding: 36px;
+    }
+
+    #admin-inner h2 {
+      font-size: 13px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: #c9b97a; margin-bottom: 6px;
+    }
+    #admin-inner p.subtitle {
+      font-size: 11px; color: rgba(232,224,208,0.4); letter-spacing: 0.1em;
+      margin-bottom: 28px;
+    }
+
+    .slot-card {
+      border: 1px solid #222; padding: 16px; margin-bottom: 14px;
+      display: flex; gap: 14px; align-items: center;
+    }
+    .slot-thumb {
+      width: 60px; height: 60px; background: #1a1a1a;
+      border: 1px solid #2a2a2a; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; color: #333;
+    }
+    .slot-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .slot-info { flex: 1; }
+    .slot-info label {
+      font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: rgba(232,224,208,0.4); display: block; margin-bottom: 6px;
+    }
+    .slot-info input[type=text] {
+      width: 100%; background: #0a0a0a; border: 1px solid #2a2a2a;
+      color: #e8e0d0; padding: 7px 10px; font-size: 12px;
+      font-family: Georgia, serif; margin-bottom: 6px;
+    }
+    .slot-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .btn-small {
+      font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 6px 12px; cursor: pointer; border: 1px solid;
+      transition: all 0.2s; font-family: Georgia, serif;
+    }
+    .btn-upload { border-color: #c9b97a; color: #c9b97a; background: transparent; }
+    .btn-upload:hover { background: #c9b97a; color: #0a0a0a; }
+    .btn-remove { border-color: #5a2a2a; color: #a05050; background: transparent; }
+    .btn-remove:hover { background: #5a2a2a; color: #e8e0d0; }
+    .btn-save { border-color: #2a5a2a; color: #50a050; background: transparent; }
+    .btn-save:hover { background: #2a5a2a; color: #e8e0d0; }
+
+    .section-title {
+      font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: rgba(201,185,122,0.5); margin: 24px 0 12px;
+      padding-bottom: 8px; border-bottom: 1px solid #1a1a1a;
+    }
+
+    #close-admin {
+      position: absolute; top: 24px; right: 28px;
+      background: none; border: none; color: rgba(232,224,208,0.4);
+      font-size: 22px; cursor: pointer; pointer-events: all;
+    }
+    #close-admin:hover { color: #e8e0d0; }
+
+    /* PASSWORD */
+    #password-modal {
+      display: none;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.95); z-index: 300;
+      align-items: center; justify-content: center; pointer-events: all;
+    }
+    #password-modal.active { display: flex; }
+    #pwd-box {
+      background: #111; border: 1px solid #2a2a2a;
+      padding: 40px; width: 320px; text-align: center;
+    }
+    #pwd-box h3 {
+      font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: #c9b97a; margin-bottom: 20px;
+    }
+    #pwd-input {
+      width: 100%; background: #0a0a0a; border: 1px solid #2a2a2a;
+      color: #e8e0d0; padding: 10px 14px; font-size: 14px;
+      font-family: Georgia, serif; text-align: center; letter-spacing: 0.3em;
+      margin-bottom: 14px;
+    }
+    #pwd-error { color: #a05050; font-size: 11px; letter-spacing: 0.1em; margin-bottom: 10px; min-height: 16px; }
+    #pwd-submit {
+      width: 100%; padding: 10px; background: transparent;
+      border: 1px solid #c9b97a; color: #c9b97a;
+      font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+      cursor: pointer; font-family: Georgia, serif; transition: all 0.2s;
+    }
+    #pwd-submit:hover { background: #c9b97a; color: #0a0a0a; }
+    #pwd-cancel { margin-top: 12px; font-size: 10px; color: rgba(232,224,208,0.3); cursor: pointer; letter-spacing: 0.15em; text-transform: uppercase; }
+    #pwd-cancel:hover { color: #e8e0d0; }
+
+    /* ARTWORK INFO POPUP */
+    #artwork-info {
+      display: none;
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: rgba(10,10,10,0.92); border: 1px solid #2a2a2a;
+      border-left: 2px solid #c9b97a;
+      padding: 16px 22px; min-width: 240px; max-width: 340px;
+      pointer-events: none; z-index: 150;
+    }
+    #artwork-info.visible { display: block; }
+    #artwork-info h4 { font-size: 14px; color: #e8e0d0; margin-bottom: 4px; }
+    #artwork-info p { font-size: 11px; color: rgba(232,224,208,0.5); letter-spacing: 0.05em; line-height: 1.6; }
+
+    /* FILE INPUT hidden */
+    .file-input-hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- PASSWORD MODAL -->
+<div id="password-modal">
+  <div id="pwd-box">
+    <h3>Acceso Curador</h3>
+    <input type="password" id="pwd-input" placeholder="••••••" maxlength="20">
+    <div id="pwd-error"></div>
+    <button id="pwd-submit">Ingresar</button>
+    <div id="pwd-cancel">Cancelar</div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel">
+  <button id="close-admin">✕</button>
+  <div id="admin-inner">
+    <h2>Gallery24 — Panel del Curador</h2>
+    <p class="subtitle">Exposición: Lo que Permanece</p>
+
+    <div class="section-title">Cuadros — Paredes</div>
+
+    <!-- Slots de cuadros -->
+    <div id="painting-slots"></div>
+
+    <div class="section-title">Pedestales — Esculturas</div>
+    <div id="sculpture-slots"></div>
+
+    <div style="margin-top:24px; display:flex; gap:10px;">
+      <button class="btn-small btn-save" onclick="saveGallery()">Guardar Galería</button>
+      <button class="btn-small btn-remove" onclick="closeAdmin()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- UI OVERLAY -->
+<div id="ui-overlay">
+  <div id="header">
+    <div id="logo">Gallery24<span>El arte sin fronteras</span></div>
+    <div id="controls-hint">
+      W A S D — moverse<br>
+      Ratón — mirar alrededor<br>
+      Clic en lienzo — info de obra
+    </div>
+  </div>
+  <div id="exposition-label">Exposición inaugural — Lo que Permanece</div>
+  <button id="admin-btn">⬡ Curador</button>
+</div>
+
+<!-- ARTWORK INFO -->
+<div id="artwork-info">
+  <h4 id="info-title">Sin título</h4>
+  <p id="info-desc">—</p>
+</div>
+
+<!-- A-FRAME SCENE -->
+<a-scene
+  background="color: #060608"
+  fog="type: linear; color: #060608; near: 18; far: 35"
+  renderer="antialias: true; colorManagement: true"
+  vr-mode-ui="enabled: true"
+>
+
+  <!-- ASSETS -->
+  <a-assets>
+    <img id="painting-0" src="/mnt/user-data/uploads/359295.webp" crossorigin="anonymous">
+    <!-- Otros slots vacíos se cargan dinámicamente -->
+  </a-assets>
+
+  <!-- CAMERA & PLAYER -->
+  <a-entity id="player" position="0 1.6 6">
+    <a-camera
+      wasd-controls="acceleration: 20"
+      look-controls="pointerLockEnabled: true"
+      cursor="fuse: false; rayOrigin: mouse"
+    >
+      <a-cursor color="#c9b97a" fuse="false" raycaster="objects: .artwork, .sculpture-obj"></a-cursor>
+    </a-camera>
+  </a-entity>
+
+  <!-- ============ FLOOR ============ -->
+  <a-plane
+    rotation="-90 0 0" width="24" height="28"
+    material="color: #1a1715; roughness: 0.9; metalness: 0.05"
+    shadow="receive: true"
+  ></a-plane>
+
+  <!-- Marble pattern overlay -->
+  <a-plane
+    rotation="-90 0 0" width="24" height="28"
+    position="0 0.001 0"
+    material="color: #1e1b18; roughness: 0.7; opacity: 0.6; transparent: true"
+  ></a-plane>
+
+  <!-- ============ CEILING ============ -->
+  <a-plane
+    rotation="90 0 0" width="24" height="28" position="0 5 0"
+    material="color: #0d0c0b; roughness: 1"
+  ></a-plane>
+
+  <!-- ============ WALLS ============ -->
+  <!-- Back wall -->
+  <a-plane id="wall-back" width="24" height="5.2" position="0 2.6 -8"
+    material="color: #1c1917; roughness: 0.95"
+    shadow="receive: true"
+  ></a-plane>
+
+  <!-- Front wall -->
+  <a-plane width="24" height="5.2" position="0 2.6 8" rotation="0 180 0"
+    material="color: #1c1917; roughness: 0.95"
+  ></a-plane>
+
+  <!-- Left wall -->
+  <a-plane width="28" height="5.2" position="-12 2.6 0" rotation="0 90 0"
+    material="color: #1a1714; roughness: 0.95"
+    shadow="receive: true"
+  ></a-plane>
+
+  <!-- Right wall -->
+  <a-plane width="28" height="5.2" position="12 2.6 0" rotation="0 -90 0"
+    material="color: #1a1714; roughness: 0.95"
+    shadow="receive: true"
+  ></a-plane>
+
+  <!-- ============ MOLDING / BASEBOARD ============ -->
+  <!-- Back -->
+  <a-box width="24.05" height="0.12" depth="0.06" position="0 0.06 -7.97"
+    material="color: #2a2520; roughness: 0.6"></a-box>
+  <a-box width="24.05" height="0.06" depth="0.06" position="0 4.97 -7.97"
+    material="color: #2a2520; roughness: 0.6"></a-box>
+  <!-- Left -->
+  <a-box width="0.06" height="0.12" depth="28.05" position="-11.97 0.06 0"
+    material="color: #2a2520; roughness: 0.6"></a-box>
+  <!-- Right -->
+  <a-box width="0.06" height="0.12" depth="28.05" position="11.97 0.06 0"
+    material="color: #2a2520; roughness: 0.6"></a-box>
+
+  <!-- ============ LIGHTING ============ -->
+  <!-- Ambient -->
+  <a-light type="ambient" color="#2a2520" intensity="0.4"></a-light>
+
+  <!-- Spotlights on back wall artworks -->
+  <a-light type="spot" color="#fff5e0" intensity="1.8" angle="28" penumbra="0.4"
+    position="-5 4.5 -5" target="#artwork-0" cast-shadow="true"></a-light>
+  <a-light type="spot" color="#fff5e0" intensity="1.6" angle="28" penumbra="0.4"
+    position="0 4.5 -5" cast-shadow="true"></a-light>
+  <a-light type="spot" color="#fff5e0" intensity="1.6" angle="28" penumbra="0.4"
+    position="5 4.5 -5" cast-shadow="true"></a-light>
+
+  <!-- Left wall spots -->
+  <a-light type="spot" color="#fff0d8" intensity="1.5" angle="26" penumbra="0.4"
+    position="-9 4.5 -2" rotation="-40 90 0" cast-shadow="true"></a-light>
+  <a-light type="spot" color="#fff0d8" intensity="1.5" angle="26" penumbra="0.4"
+    position="-9 4.5 4" rotation="-40 90 0" cast-shadow="true"></a-light>
+
+  <!-- Right wall spots -->
+  <a-light type="spot" color="#fff0d8" intensity="1.5" angle="26" penumbra="0.4"
+    position="9 4.5 -2" rotation="-40 -90 0" cast-shadow="true"></a-light>
+  <a-light type="spot" color="#fff0d8" intensity="1.5" angle="26" penumbra="0.4"
+    position="9 4.5 4" rotation="-40 -90 0" cast-shadow="true"></a-light>
+
+  <!-- Pedestal spots -->
+  <a-light type="spot" color="#fff8f0" intensity="1.2" angle="22" penumbra="0.5"
+    position="-3 4.5 2" rotation="-60 0 0" cast-shadow="true"></a-light>
+  <a-light type="spot" color="#fff8f0" intensity="1.2" angle="22" penumbra="0.5"
+    position="3 4.5 2" rotation="-60 0 0" cast-shadow="true"></a-light>
+
+
+  <!-- ============ BACK WALL — PAINTINGS ============ -->
+
+  <!-- SLOT 0: Painting (uploaded) -->
+  <a-entity id="artwork-0-entity" position="-5 2.4 -7.8">
+    <!-- Frame -->
+    <a-box width="2.1" height="2.85" depth="0.06" position="0 0 -0.04"
+      material="color: #1a1510; roughness: 0.5; metalness: 0.3"></a-box>
+    <!-- Gold inner frame line -->
+    <a-box width="1.92" height="2.67" depth="0.065" position="0 0 -0.035"
+      material="color: #c9b97a; roughness: 0.4; metalness: 0.6"></a-box>
+    <!-- Canvas -->
+    <a-plane id="artwork-0" class="artwork" width="1.8" height="2.55"
+      material="src: #painting-0; roughness: 0.85"
+      data-title="Sin título" data-desc="Óleo sobre lienzo — Gallery24, 2024"
+      cursor-listener
+    ></a-plane>
+    <!-- Spotlight cone visual -->
+    <a-light type="spot" color="#fff5e0" intensity="0.8" angle="20" penumbra="0.5"
+      position="0 2 2" rotation="-35 0 0"></a-light>
+    <!-- Label below -->
+    <a-text value="I" color="#c9b97a" align="center" width="1.4"
+      position="0 -1.55 0.1" font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+      letter-spacing="8"></a-text>
+  </a-entity>
+
+  <!-- SLOT 1: Empty back wall center -->
+  <a-entity id="artwork-1-entity" position="0 2.4 -7.8">
+    <a-box width="2.1" height="2.85" depth="0.06" position="0 0 -0.04"
+      material="color: #141210; roughness: 0.5; metalness: 0.2"></a-box>
+    <a-box width="1.92" height="2.67" depth="0.065" position="0 0 -0.035"
+      material="color: #2a2520; roughness: 0.4; metalness: 0.1"></a-box>
+    <a-plane id="artwork-1" class="artwork" width="1.8" height="2.55"
+      material="color: #0e0c0a; roughness: 1"
+      data-title="Espacio disponible" data-desc="Esta obra aún no ha sido cargada"
+      cursor-listener
+    ></a-plane>
+    <a-text value="II" color="#2a2520" align="center" width="1.4"
+      position="0 -1.55 0.1" font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+      letter-spacing="8"></a-text>
+  </a-entity>
+
+  <!-- SLOT 2: Empty back wall right -->
+  <a-entity id="artwork-2-entity" position="5 2.4 -7.8">
+    <a-box width="2.1" height="2.85" depth="0.06" position="0 0 -0.04"
+      material="color: #141210; roughness: 0.5; metalness: 0.2"></a-box>
+    <a-box width="1.92" height="2.67" depth="0.065" position="0 0 -0.035"
+      material="color: #2a2520; roughness: 0.4; metalness: 0.1"></a-box>
+    <a-plane id="artwork-2" class="artwork" width="1.8" height="2.55"
+      material="color: #0e0c0a; roughness: 1"
+      data-title="Espacio disponible" data-desc="Esta obra aún no ha sido cargada"
+      cursor-listener
+    ></a-plane>
+    <a-text value="III" color="#2a2520" align="center" width="1.4"
+      position="0 -1.55 0.1" font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+      letter-spacing="8"></a-text>
+  </a-entity>
+
+  <!-- ============ LEFT WALL — PAINTINGS ============ -->
+  <a-entity id="artwork-3-entity" position="-11.8 2.4 -2" rotation="0 90 0">
+    <a-box width="2.1" height="2.85" depth="0.06" position="0 0 -0.04"
+      material="color: #141210; roughness: 0.5; metalness: 0.2"></a-box>
+    <a-box width="1.92" height="2.67" depth="0.065" position="0 0 -0.035"
+      material="color: #2a2520; roughness: 0.4; metalness: 0.1"></a-box>
+    <a-plane id="artwork-3" class="artwork" width="1.8" height="2.55"
+      material="color: #0e0c0a; roughness: 1"
+      data-title="Espacio disponible" data-desc="Esta obra aún no ha sido cargada"
+      cursor-listener
+    ></a-plane>
+    <a-text value="IV" color="#2a2520" align="center" width="1.4"
+      position="0 -1.55 0.1" font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+      letter-spacing="8"></a-text>
+  </a-entity>
+
+  <a-entity id="artwork-4-entity" position="-11.8 2.4 4" rotation="0 90 0">
+    <a-box width="2.1" height="2.85" depth="0.06" position="0 0 -0.04"
+      material="color: #141210; roughness: 0.5; metalness: 0.2"></a-box>
+    <a-box width="1.92" height="2.67" depth="0.065" position="0 0 -0.035"
+      material="color: #2a2520; roughness: 0.4; metalness: 0.1"></a-box>
+    <a-plane id="artwork-4" class="artwork" width="1.8" height="2.55"
+      material="color: #0e0c0a; roughness: 1"
+      data-title="Espacio disponible" data-desc="Esta obra aún no ha sido cargada"
+      cursor-listener
+    ></a-plane>
+    <a-text value="V" color="#2a2520" align="center" width="1.4"
+      position="0 -1.55 0.1" font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+      letter-spacing="8"></a-text>
+  </a-entity>
+
+  <!-- ============ RIGHT WALL — PAINTINGS ============ -->
+  <a-entity id="artwork-5-entity" position="11.8 2.4 -2" rotation="0 -90 0">
+    <a-box width="2.1" height="2.85" depth="0.06" position="0 0 -0.04"
+      material="color: #141210; roughness: 0.5; metalness: 0.2"></a-box>
+    <a-box width="1.92" height="2.67" depth="0.065" position="0 0 -0.035"
+      material="color: #2a2520; roughness: 0.4; metalness: 0.1"></a-box>
+    <a-plane id="artwork-5" class="artwork" width="1.8" height="2.55"
+      material="color: #0e0c0a; roughness: 1"
+      data-title="Espacio disponible" data-desc="Esta obra aún no ha sido cargada"
+      cursor-listener
+    ></a-plane>
+    <a-text value="VI" color="#2a2520" align="center" width="1.4"
+      position="0 -1.55 0.1" font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+      letter-spacing="8"></a-text>
+  </a-entity>
+
+  <a-entity id="artwork-6-entity" position="11.8 2.4 4" rotation="0 -90 0">
+    <a-box width="2.1" height="2.85" depth="0.06" position="0 0 -0.04"
+      material="color: #141210; roughness: 0.5; metalness: 0.2"></a-box>
+    <a-box width="1.92" height="2.67" depth="0.065" position="0 0 -0.035"
+      material="color: #2a2520; roughness: 0.4; metalness: 0.1"></a-box>
+    <a-plane id="artwork-6" class="artwork" width="1.8" height="2.55"
+      material="color: #0e0c0a; roughness: 1"
+      data-title="Espacio disponible" data-desc="Esta obra aún no ha sido cargada"
+      cursor-listener
+    ></a-plane>
+    <a-text value="VII" color="#2a2520" align="center" width="1.4"
+      position="0 -1.55 0.1" font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+      letter-spacing="8"></a-text>
+  </a-entity>
+
+  <!-- ============ PEDESTALS — SCULPTURES ============ -->
+
+  <!-- Pedestal left -->
+  <a-entity id="sculpture-0-entity" position="-3 0 2">
+    <!-- Base pedestal -->
+    <a-box id="ped-left" width="0.7" height="1.1" depth="0.7" position="0 0.55 0"
+      material="color: #1e1b17; roughness: 0.8; metalness: 0.1"
+      shadow="cast: true; receive: true"
+    ></a-box>
+    <!-- Top surface -->
+    <a-box width="0.78" height="0.04" depth="0.78" position="0 1.12 0"
+      material="color: #c9b97a; roughness: 0.5; metalness: 0.5"></a-box>
+    <!-- Sculpture placeholder (abstract sphere) -->
+    <a-sphere id="sculpture-0" class="sculpture-obj" radius="0.28" position="0 1.42 0"
+      material="color: #2a2520; roughness: 0.3; metalness: 0.6; wireframe: false"
+      data-title="Espacio para escultura I" data-desc="Pedestal disponible — Apto para escultura o instalación"
+      cursor-listener
+    ></a-sphere>
+    <a-text value="S·I" color="#c9b97a" align="center" width="0.9"
+      position="0 -0.2 0.36" font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+      letter-spacing="4"></a-text>
+  </a-entity>
+
+  <!-- Pedestal right -->
+  <a-entity id="sculpture-1-entity" position="3 0 2">
+    <a-box width="0.7" height="1.1" depth="0.7" position="0 0.55 0"
+      material="color: #1e1b17; roughness: 0.8; metalness: 0.1"
+      shadow="cast: true; receive: true"
+    ></a-box>
+    <a-box width="0.78" height="0.04" depth="0.78" position="0 1.12 0"
+      material="color: #c9b97a; roughness: 0.5; metalness: 0.5"></a-box>
+    <!-- Sculpture placeholder (abstract box) -->
+    <a-box id="sculpture-1" class="sculpture-obj" width="0.38" height="0.5" depth="0.22" position="0 1.45 0"
+      material="color: #2a2520; roughness: 0.3; metalness: 0.6"
+      data-title="Espacio para escultura II" data-desc="Pedestal disponible — Apto para escultura o instalación"
+      cursor-listener
+    ></a-box>
+    <a-text value="S·II" color="#c9b97a" align="center" width="0.9"
+      position="0 -0.2 0.36" font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+      letter-spacing="4"></a-text>
+  </a-entity>
+
+  <!-- ============ GALLERY TITLE ON BACK WALL ============ -->
+  <a-text value="LO QUE PERMANECE" color="#c9b97a" align="center" width="7"
+    position="0 4.3 -7.75"
+    font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+    letter-spacing="12"></a-text>
+  <a-text value="Gallery24 — Exposición Inaugural" color="#3a3530" align="center" width="4.5"
+    position="0 3.9 -7.75"
+    font="https://cdn.aframe.io/fonts/Roboto-msdf.json"
+    letter-spacing="6"></a-text>
+
+  <!-- ============ ENTRANCE ARCH ============ -->
+  <a-box width="24" height="0.15" depth="0.3" position="0 5.08 7.9"
+    material="color: #1a1714; roughness: 0.8"></a-box>
+
+  <!-- Floor grid lines (subtle) -->
+  <a-entity>
+    <a-box width="0.02" height="0.002" depth="28" position="-8 0.003 0"
+      material="color: #2a2520; roughness: 1; opacity: 0.4; transparent: true"></a-box>
+    <a-box width="0.02" height="0.002" depth="28" position="0 0.003 0"
+      material="color: #2a2520; roughness: 1; opacity: 0.4; transparent: true"></a-box>
+    <a-box width="0.02" height="0.002" depth="28" position="8 0.003 0"
+      material="color: #2a2520; roughness: 1; opacity: 0.4; transparent: true"></a-box>
+    <a-box width="24" height="0.002" depth="0.02" position="0 0.003 -4"
+      material="color: #2a2520; roughness: 1; opacity: 0.4; transparent: true"></a-box>
+    <a-box width="24" height="0.002" depth="0.02" position="0 0.003 0"
+      material="color: #2a2520; roughness: 1; opacity: 0.4; transparent: true"></a-box>
+    <a-box width="24" height="0.002" depth="0.02" position="0 0.003 4"
+      material="color: #2a2520; roughness: 1; opacity: 0.4; transparent: true"></a-box>
+  </a-entity>
+
+</a-scene>
+
+<!-- HIDDEN FILE INPUTS -->
+<input type="file" class="file-input-hidden" id="file-input-0" accept="image/*">
+<input type="file" class="file-input-hidden" id="file-input-1" accept="image/*">
+<input type="file" class="file-input-hidden" id="file-input-2" accept="image/*">
+<input type="file" class="file-input-hidden" id="file-input-3" accept="image/*">
+<input type="file" class="file-input-hidden" id="file-input-4" accept="image/*">
+<input type="file" class="file-input-hidden" id="file-input-5" accept="image/*">
+<input type="file" class="file-input-hidden" id="file-input-6" accept="image/*">
+
+<script>
+// ========== STATE ==========
+const ADMIN_PASSWORD = "gallery24";
+
+const galleryData = {
+  paintings: [
+    { title: "Sin título", desc: "Óleo sobre lienzo — Gallery24, 2024", imgSrc: null, loaded: true },
+    { title: "", desc: "", imgSrc: null, loaded: false },
+    { title: "", desc: "", imgSrc: null, loaded: false },
+    { title: "", desc: "", imgSrc: null, loaded: false },
+    { title: "", desc: "", imgSrc: null, loaded: false },
+    { title: "", desc: "", imgSrc: null, loaded: false },
+    { title: "", desc: "", imgSrc: null, loaded: false },
+  ],
+  sculptures: [
+    { title: "Espacio para escultura I", desc: "Pedestal disponible" },
+    { title: "Espacio para escultura II", desc: "Pedestal disponible" },
+  ]
+};
+
+// Load from localStorage if available
+try {
+  const saved = localStorage.getItem('gallery24-data');
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    Object.assign(galleryData, parsed);
+  }
+} catch(e) {}
+
+// ========== CURSOR LISTENER ==========
+AFRAME.registerComponent('cursor-listener', {
+  init: function () {
+    this.el.addEventListener('click', (e) => {
+      const title = this.el.getAttribute('data-title');
+      const desc = this.el.getAttribute('data-desc');
+      showArtworkInfo(title, desc);
+    });
+    this.el.addEventListener('mouseenter', () => {
+      this.el.setAttribute('material', 'emissive', '#1a1510');
+    });
+    this.el.addEventListener('mouseleave', () => {
+      this.el.setAttribute('material', 'emissive', '#000000');
+    });
+  }
+});
+
+// ========== ARTWORK INFO ==========
+let infoTimeout;
+function showArtworkInfo(title, desc) {
+  const box = document.getElementById('artwork-info');
+  document.getElementById('info-title').textContent = title || 'Sin título';
+  document.getElementById('info-desc').textContent = desc || '—';
+  box.classList.add('visible');
+  clearTimeout(infoTimeout);
+  infoTimeout = setTimeout(() => box.classList.remove('visible'), 4000);
+}
+
+// ========== ADMIN / PASSWORD ==========
+document.getElementById('admin-btn').addEventListener('click', () => {
+  document.getElementById('password-modal').classList.add('active');
+  document.getElementById('pwd-input').value = '';
+  document.getElementById('pwd-error').textContent = '';
+  setTimeout(() => document.getElementById('pwd-input').focus(), 100);
+});
+
+document.getElementById('pwd-submit').addEventListener('click', checkPassword);
+document.getElementById('pwd-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPassword();
+});
+document.getElementById('pwd-cancel').addEventListener('click', () => {
+  document.getElementById('password-modal').classList.remove('active');
+});
+
+function checkPassword() {
+  const val = document.getElementById('pwd-input').value;
+  if (val === ADMIN_PASSWORD) {
+    document.getElementById('password-modal').classList.remove('active');
+    openAdmin();
+  } else {
+    document.getElementById('pwd-error').textContent = 'Contraseña incorrecta';
+    document.getElementById('pwd-input').value = '';
+  }
+}
+
+function openAdmin() {
+  renderAdminSlots();
+  document.getElementById('admin-panel').classList.add('active');
+}
+function closeAdmin() {
+  document.getElementById('admin-panel').classList.remove('active');
+}
+document.getElementById('close-admin').addEventListener('click', closeAdmin);
+
+// ========== RENDER ADMIN SLOTS ==========
+function renderAdminSlots() {
+  const paintingContainer = document.getElementById('painting-slots');
+  paintingContainer.innerHTML = '';
+
+  galleryData.paintings.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'slot-card';
+
+    const romanNumerals = ['I','II','III','IV','V','VI','VII'];
+
+    card.innerHTML = `
+      <div class="slot-thumb" id="thumb-${i}">
+        ${p.imgSrc ? `<img src="${p.imgSrc}" alt="">` : (i === 0 ? '<img src="/mnt/user-data/uploads/359295.webp" alt="">' : '🖼')}
+      </div>
+      <div class="slot-info">
+        <label>Obra ${romanNumerals[i]} — Pared ${i < 3 ? 'Fondo' : (i < 5 ? 'Izquierda' : 'Derecha')}</label>
+        <input type="text" id="title-${i}" value="${p.title || ''}" placeholder="Título de la obra">
+        <input type="text" id="desc-${i}" value="${p.desc || ''}" placeholder="Artista, técnica, año...">
+        <div class="slot-actions">
+          <button class="btn-small btn-upload" onclick="triggerUpload(${i})">⬆ Subir imagen</button>
+          <button class="btn-small btn-remove" onclick="removeArtwork(${i})">✕ Quitar obra</button>
+        </div>
+      </div>
+    `;
+    paintingContainer.appendChild(card);
+  });
+
+  // Sculpture slots
+  const sculptureContainer = document.getElementById('sculpture-slots');
+  sculptureContainer.innerHTML = '';
+  galleryData.sculptures.forEach((s, i) => {
+    const card = document.createElement('div');
+    card.className = 'slot-card';
+    card.innerHTML = `
+      <div class="slot-thumb">◈</div>
+      <div class="slot-info">
+        <label>Pedestal S·${['I','II'][i]}</label>
+        <input type="text" id="stitle-${i}" value="${s.title || ''}" placeholder="Título de la escultura">
+        <input type="text" id="sdesc-${i}" value="${s.desc || ''}" placeholder="Artista, material, año...">
+      </div>
+    `;
+    sculptureContainer.appendChild(card);
+  });
+}
+
+// ========== FILE UPLOAD ==========
+function triggerUpload(index) {
+  document.getElementById(`file-input-${index}`).click();
+}
+
+for (let i = 0; i < 7; i++) {
+  document.getElementById(`file-input-${i}`).addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const src = ev.target.result;
+      galleryData.paintings[i].imgSrc = src;
+      galleryData.paintings[i].loaded = true;
+      // Update 3D scene
+      applyArtworkToScene(i, src);
+      // Update thumbnail
+      const thumb = document.getElementById(`thumb-${i}`);
+      if (thumb) thumb.innerHTML = `<img src="${src}" alt="">`;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function applyArtworkToScene(index, src) {
+  const canvas = document.getElementById(`artwork-${index}`);
+  if (!canvas) return;
+  // Create/update asset
+  let asset = document.getElementById(`dyn-img-${index}`);
+  if (!asset) {
+    asset = document.createElement('img');
+    asset.id = `dyn-img-${index}`;
+    document.querySelector('a-assets').appendChild(asset);
+  }
+  asset.src = src;
+  canvas.setAttribute('material', `src: #dyn-img-${index}; roughness: 0.85`);
+  // Update data attributes
+  const title = galleryData.paintings[index].title;
+  const desc = galleryData.paintings[index].desc;
+  canvas.setAttribute('data-title', title || 'Sin título');
+  canvas.setAttribute('data-desc', desc || '—');
+  // Brighten frame to show it's occupied
+  const entity = document.getElementById(`artwork-${index}-entity`);
+  if (entity) {
+    const frames = entity.querySelectorAll('a-box');
+    if (frames[1]) frames[1].setAttribute('material', 'color: #c9b97a; roughness: 0.4; metalness: 0.6');
+  }
+}
+
+function removeArtwork(index) {
+  galleryData.paintings[index].imgSrc = null;
+  galleryData.paintings[index].loaded = false;
+  if (index === 0) return; // keep original
+  const canvas = document.getElementById(`artwork-${index}`);
+  if (canvas) {
+    canvas.setAttribute('material', 'color: #0e0c0a; roughness: 1');
+    canvas.setAttribute('data-title', 'Espacio disponible');
+    canvas.setAttribute('data-desc', 'Esta obra aún no ha sido cargada');
+  }
+  // Dim frame
+  const entity = document.getElementById(`artwork-${index}-entity`);
+  if (entity) {
+    const frames = entity.querySelectorAll('a-box');
+    if (frames[1]) frames[1].setAttribute('material', 'color: #2a2520; roughness: 0.4; metalness: 0.1');
+  }
+  renderAdminSlots();
+}
+
+// ========== SAVE ==========
+function saveGallery() {
+  // Save titles/descs from inputs
+  galleryData.paintings.forEach((p, i) => {
+    const t = document.getElementById(`title-${i}`);
+    const d = document.getElementById(`desc-${i}`);
+    if (t) p.title = t.value;
+    if (d) p.desc = d.value;
+    // Update scene data attributes
+    const canvas = document.getElementById(`artwork-${i}`);
+    if (canvas && p.loaded) {
+      canvas.setAttribute('data-title', p.title || 'Sin título');
+      canvas.setAttribute('data-desc', p.desc || '—');
+    }
+  });
+  galleryData.sculptures.forEach((s, i) => {
+    const t = document.getElementById(`stitle-${i}`);
+    const d = document.getElementById(`sdesc-${i}`);
+    if (t) s.title = t.value;
+    if (d) s.desc = d.value;
+    const sculpt = document.getElementById(`sculpture-${i}`);
+    if (sculpt) {
+      sculpt.setAttribute('data-title', s.title || '—');
+      sculpt.setAttribute('data-desc', s.desc || '—');
+    }
+  });
+
+  try {
+    const saveData = {
+      paintings: galleryData.paintings.map(p => ({...p, imgSrc: p.imgSrc ? p.imgSrc.substring(0,50)+'...' : null})),
+      sculptures: galleryData.sculptures
+    };
+    localStorage.setItem('gallery24-data', JSON.stringify(galleryData));
+  } catch(e) {}
+
+  closeAdmin();
+
+  // Toast
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid #c9b97a;color:#c9b97a;padding:12px 24px;font-size:11px;letter-spacing:0.2em;z-index:400;pointer-events:none;';
+  toast.textContent = 'GALERÍA GUARDADA';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
+
+// ========== INIT ==========
+document.addEventListener('DOMContentLoaded', () => {
+  // Apply any saved images
+  galleryData.paintings.forEach((p, i) => {
+    if (p.imgSrc && i > 0) {
+      setTimeout(() => applyArtworkToScene(i, p.imgSrc), 1000);
+    }
+  });
+});
+</script>
+</body>
+</html>
