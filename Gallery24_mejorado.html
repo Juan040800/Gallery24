@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gallery24 | El Arte Sin Fronteras</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#0a0a0a;color:#ece7dd;overflow-x:hidden}
+header{position:fixed;top:0;width:100%;padding:16px 24px;background:rgba(0,0,0,.9);display:flex;justify-content:space-between;z-index:1000}
+a{color:#c9b97a;text-decoration:none}
+.hero{height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;background:linear-gradient(135deg,#090909,#1a0d33)}
+.hero h1{font-size:4rem;color:#c9b97a;animation:fade 2s}
+section{padding:80px 8%}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
+.card{background:#141414;padding:10px;transition:.4s}
+.card:hover{transform:translateY(-10px) scale(1.03)}
+img{width:100%;height:320px;object-fit:cover}
+.guide{position:fixed;right:20px;bottom:20px;background:#c9b97a;color:#000;padding:12px 18px;border-radius:30px;cursor:pointer;font-weight:bold}
+.login-screen{
+position:fixed;inset:0;background:#000;display:flex;justify-content:center;align-items:center;z-index:5000
+}
+.login-box{
+background:#141414;padding:30px;border-radius:12px;width:320px
+}
+.login-box input{
+width:100%;padding:10px;margin:10px 0;background:#222;border:none;color:white
+}
+.login-box button{
+width:100%;padding:10px;background:#c9b97a;border:none;font-weight:bold;cursor:pointer
+}
+.hidden{display:none}
+.fade{opacity:0;transform:translateY(30px);transition:1s}
+.fade.show{opacity:1;transform:translateY(0)}
+@keyframes fade{
+from{opacity:0;transform:translateY(20px)}
+to{opacity:1;transform:translateY(0)}
+}
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+<div class="login-box">
+<h2>Gallery24</h2>
+<input type="email" placeholder="Correo">
+<input type="password" placeholder="Contraseña">
+<button onclick="entrar()">Entrar</button>
+</div>
+</div>
+
+<header>
+<div><b>Gallery24</b></div>
+<nav><a href="#portfolio">Portafolio</a></nav>
+</header>
+
+<div class="hero">
+<div>
+<h1>Gallery24</h1>
+<p>El Arte Sin Fronteras</p>
+</div>
+</div>
+
+<section id="portfolio" class="fade">
+<h2>Colección Principal</h2>
+<div class="grid">
+<div class="card"><img src="https://picsum.photos/600/800?1"><h3>Cartagena Eterna</h3></div>
+<div class="card"><img src="https://picsum.photos/600/800?2"><h3>Lo que Permanece</h3></div>
+<div class="card"><img src="https://picsum.photos/600/800?3"><h3>Raíces</h3></div>
+</div>
+</section>
+
+<section class="fade">
+<h2>Experiencia para Turistas</h2>
+<p>Galería artística y cultural de Cartagena.</p>
+</section>
+
+<div class="guide" onclick="guiaVirtual()">🎧 Guía Virtual</div>
+
+<script>
+function entrar(){
+ document.getElementById('loginScreen').classList.add('hidden');
+}
+
+function guiaVirtual(){
+ const texto = "Bienvenido a Gallery24. Explora nuestras exposiciones y descubre artistas emergentes.";
+ const voz = new SpeechSynthesisUtterance(texto);
+ voz.lang = "es-ES";
+ speechSynthesis.speak(voz);
+ alert(texto);
+}
+
+const observer = new IntersectionObserver(entries=>{
+ entries.forEach(entry=>{
+   if(entry.isIntersecting){
+      entry.target.classList.add('show');
+   }
+ })
+});
+
+document.querySelectorAll('.fade').forEach(el=>observer.observe(el));
+</script>
+
+</body>
+</html>
